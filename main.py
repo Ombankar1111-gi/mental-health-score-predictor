@@ -1,6 +1,9 @@
 import joblib
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Literal
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +12,10 @@ model = joblib.load('Mental_Health_Model.pkl')
 top_countries = ['Other','India','USA','Canada','Australia','UK','Germany','Mexico','Turkey','France']
 
 app = FastAPI()
+
+templates = Jinja2Templates(directory="templates")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,24 +41,19 @@ class StudentData(BaseModel):
     stress_level            : Literal['Medium', 'Low', 'Very High', 'High']
 
 
-
-
 # Describe what we send back
 class PredictionResponse(BaseModel):
-    predicted_mental_health_score:float
-    #6.777777 -> float
+    predicted_mental_health_score: float
 
 
+@app.get("/", response_class=HTMLResponse)
+async def greet(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get('/')
-def greet():
-    return {'Welcome to Sheryians AI School Guys'}
-
-
-@app.post('/predict', response_model=PredictionResponse) #6.77777
+@app.post('/predict', response_model=PredictionResponse)
 def predict(data: StudentData):
-   
+
    country_group = data.country if data.country in top_countries else "Other"
 
    input_row = pd.DataFrame([{
@@ -70,5 +72,5 @@ def predict(data: StudentData):
         'Grouped_country'           :country_group
    }])
 
-   prediction = model.predict(input_row)[0] #6.77
+   prediction = model.predict(input_row)[0]
    return PredictionResponse(predicted_mental_health_score=round(float(prediction),2))
