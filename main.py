@@ -48,7 +48,10 @@ class PredictionResponse(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def greet(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html"
+    )
 
 
 @app.post('/predict', response_model=PredictionResponse)
